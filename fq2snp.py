@@ -1,8 +1,8 @@
 import os
 import argparse
 
-def comm(string):
-    print(string)
+def comm(string): # useful debugging function
+    os.system(string)
 
 def single_assay_processing(ref, file1, file2, results, snps):
     pref1 = file1.split('.')[0] # making prefixes
@@ -16,9 +16,6 @@ def single_assay_processing(ref, file1, file2, results, snps):
     
     #comm('rm {}'.format(file1)) # we already do not need original files
     #comm('rm {}'.format(file2))
-    
-    #bam = pre + '.bam' # generating binary
-    #comm('bbmap.sh in1={} in2={} out={} ref={}'.format(clean1, clean2, bam, ref))
 
     sam = pre + '.sam' # generating .sam
     comm('bwa mem {} {} {} > {}'.format(ref, clean1, clean2, sam))
@@ -58,7 +55,7 @@ def single_assay_processing(ref, file1, file2, results, snps):
     comm('samtools mpileup {} > {}'.format(sort, output))
 
     comm("bcftools mpileup -Ou -f {} {} | bcftools call -Ou -mv | bcftools filter -s LowQual -e '%QUAL<20 || DP>100' > {}.flt.vcf".format(ref, \
-		 sort, os.path.join(snps, pre.split('/')[-1])))
+		 sort, os.path.join(snps, pre.split('/')[-1]))) # making snp-calling
 
 def analyze_list(file_list, ref, results, snps): # analyzing list of paired files
     for i in range(len(file_list)//2):
@@ -74,12 +71,12 @@ def analyze_folders_inside(path, ref, results, snps): # analyzing all subfolders
         analyze_folder(fol, ref, results, snps)
 
 
-def fqbamsnp(ref, inputs, txt_output, snp_output):
-    comm('bwa index {}'.format(ref))
+def fqbamsnp(ref, inputs, txt_output, snp_output): # complete analysis
+    comm('bwa index {}'.format(ref)) # indexing reference sequence
     analyze_list(inputs, ref, txt_output, snp_output)
 
 if __name__ =='__main__':
-    parser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser( #parsing arguments
     description='Process pair-reads NGS data from fastq to bam. Includes QC, adapters and duplicates removal.')
     parser.add_argument('ref', type=str, help='Path to reference fasta file.')
     parser.add_argument('inputs', type=str, nargs='+', help='Path to fastq files.')

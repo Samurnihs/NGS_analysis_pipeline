@@ -10,7 +10,7 @@ import multiprocessing as mp
 from functools import partial
 import argparse
 
-def seq_in_fasta(se, fasta_p):
+def seq_in_fasta(se, fasta_p): # finding at least 1 subsequence in fasta
     
     fasta = list(SeqIO.parse(fasta_p, "fasta"))
     
@@ -21,55 +21,36 @@ def seq_in_fasta(se, fasta_p):
         c = fasta[i].seq.count(se)
         if c == 1:
             return 1
-    #        break
     return 0
 
 
-def get_loc_seq(ref, pos, alt):
+def get_loc_seq(ref, pos, alt): # getting local subsequence of length 10 with mutation
     if pos <= 10:
-        #print(ef[pos-1:pos+19], alt + ref[pos:pos+19])
         return alt + ref[pos:pos+19]
     elif pos >= (len(ref) - 10):
-        #print(ref[pos-20:pos], ref[pos-20:pos-1] + alt)
         return ref[pos-20:pos-1] + alt
     else:
-        #print(ref[pos-10:pos+10], ref[pos-10:pos-1] + alt + ref[pos:pos+10])
         return ref[pos-10:pos-1] + alt + ref[pos:pos+10]
 
 
-def check_fastas(fastas_fold, ref, pos, alt):
-    #scores = list()
+def check_fastas(fastas_fold, ref, pos, alt): # searching particular mutation in particular position in local database 
     fastas = os.listdir(fastas_fold)
     subseq = get_loc_seq(ref, pos, alt)
         
-    #p = counter_fasta(subs, list(map(lambda x: os.path.join(fastas_fold, x), fastas)))
-        #print(p)
-    #    scores.append(p)
-    #countpar = partial(seq_in_fasta, subs)    
-        
-    #pool = mp.Pool(mp.cpu_count())
-    #scores = list(pool.map(countpar, list(map(lambda x: os.path.join(fastas_fold, x), fastas))))
+    
     for path in list(map(lambda x: os.path.join(fastas_fold, x), fastas)):
         if seq_in_fasta(subseq, path) == 1:
-            return 1
-    #        break
-    
+            return 1 
     return 0
-    
-    #if max(scores) > 0:
-    #    return 1
-    #else:
-    #    return 0
 
 
-def pd_snps(snps):
+def pd_snps(snps): # getting pandas DataFrame with snps
     df = pd.DataFrame(columns=['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT'])
     lines = snps.readlines()
     for line in lines:
         if line[0] != '#':
             attr = line.split('\t')[1:6]
-            if float(attr[-1]) >= 100:
-                #print(line.split('\t')[0:9])
+            if float(attr[-1]) >= 100: # only high quality (>=100)
                 df.loc[len(df)] = line.split('\t')[0:9]
     return df
 
@@ -123,7 +104,7 @@ def filter_mutations(file_in_name, positions, refer, fastas_fold, read_thresh=50
     return df
 
 
-def proc_all(filename, ref, fastas_fold):
+def proc_all(filename, ref, fastas_fold): # using previous function in context of files
     vcf = open(filename)
     st = os.path.join(os.getcwd(), 'mpileups', filename.replace('.flt.vcf', '.txt').split('/')[-1])
     print(st)
@@ -132,7 +113,7 @@ def proc_all(filename, ref, fastas_fold):
     return df
 
 
-def procpar(filenames, ref, fastas_fold):
+def procpar(filenames, ref, fastas_fold): # parallel adaptation for previous function
     t1 = time.time()
     pool = mp.Pool(mp.cpu_count())
     procfix = partial(proc_all, ref=ref, fastas_fold=fastas_fold)
@@ -143,15 +124,13 @@ def procpar(filenames, ref, fastas_fold):
 if __name__ =='__main__':
     parser = argparse.ArgumentParser(description='Getting information about mutations.')
     parser.add_argument('ref', type=str, help='Path to reference fasta file.')
-    #parser.add_argument('mpileups', type=str, nargs='+', help='Path to mpileup (.txt) files.')
     parser.add_argument('vcfs', type=str, nargs='+', help='Path to vcf files.')
     parser.add_argument('-o', type=str, help='Path output folder.', default='csv_results')
     parser.add_argument('-db', type=str, help='Fasta database to search mutations.', default='fastas')
     args = parser.parse_args()
 
-    #print(args.vcfs)
 
-    df = procpar(args.vcfs, args.ref, args.db)
+    df = procpar(args.vcfs, args.ref, args.db) # getting result as DataFrame
     df.to_csv(os.path.join(args.o, ('sars_result' + \
                   str(datetime.datetime.now()).replace('-', '_').replace(':', \
-                      '_').replace(' ', '_')[0:19] + '.csv'))) 
+                      '_').replace(' ', '_')[0:19] + '.csv'))) # saving result as csv
