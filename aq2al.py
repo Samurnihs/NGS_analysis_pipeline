@@ -1,0 +1,35 @@
+import argparse 
+import fq2snp as f2s # import pipelines
+import m2f
+import table_snp as ts 
+import os
+import time
+import pandas
+
+parser = argparse.ArgumentParser(description='Complete pipeline from fastq files (paired reads) to fasta alignment.')
+parser.add_argument('inputs', type=str, nargs='+', help='Path to fq files.')
+parser.add_argument('ref', type=str, help='Path to reference fasta file.')
+args = parser.parse_args()
+
+f2c.fqbamsnp(args.ref, args.inputs, 'mpileups', 'snps') # obtaining mpileups and snps
+
+bam_paths = list() # empty list for bam files
+paths = list(set(map(lambda x: os.path.split(x)[0], args.inputs))) # paths without duplicates
+
+for i in range(len(paths)):
+    files = os.listdir(paths[i]) # finding all files in folder
+    files = filter(lambda x: x.endwith('markdup.sorted.bam'), files) # filtering all markdup.sorted.bam files in folder
+    bam_paths+=list(map(lambda x: os.path.join(paths[i], x), files))
+
+m2f.f2fa_par(bam_paths, 'generated_fastas') # obtaining fasta files from pileups
+
+out_f = os.listdir('generated_fastas') # list of fasta files in directory generated_fastas
+
+for path in list(map(lambda x: os.path.join('generated_fastas', x), out_f)): # making alignments
+    os.system('mafft --6merpair --thread -4 --addfragments {} {} > {}'.format(path, args.ref, \
+        path.replace('generated_fastas', 'alignments').replace('.fasta', '_al.fasta')))
+
+df = ts.procpar('snps', args.ref, 'fastas') # table snps
+    df.to_csv(os.path.join('csv_results', ('sars_result' + \
+                  str(datetime.datetime.now()).replace('-', '_').replace(':', \
+                      '_').replace(' ', '_')[0:19] + '.csv'))) 

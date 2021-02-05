@@ -7,8 +7,10 @@ import Bio
 from Bio import SeqIO
 from functools import partial
 import multiprocessing as mp
+from functools import partial
+import argparse
 
-def counter_fasta(se, fasta_p):
+def seq_in_fasta(se, fasta_p):
     
     fasta = list(SeqIO.parse(fasta_p, "fasta"))
     
@@ -17,10 +19,10 @@ def counter_fasta(se, fasta_p):
     for i in range(len(fasta)):
         num+=1
         c = fasta[i].seq.count(se)
-        if c > 0:
-            n_pos+=1
-            #print(i, fasta[i].seq.find(se))
-    return n_pos
+        if c == 1:
+            return 1
+    #        break
+    return 0
 
 
 def get_loc_seq(ref, pos, alt):
@@ -38,20 +40,26 @@ def get_loc_seq(ref, pos, alt):
 def check_fastas(fastas_fold, ref, pos, alt):
     #scores = list()
     fastas = os.listdir(fastas_fold)
-    subs = get_loc_seq(ref, pos, alt)
+    subseq = get_loc_seq(ref, pos, alt)
         
     #p = counter_fasta(subs, list(map(lambda x: os.path.join(fastas_fold, x), fastas)))
         #print(p)
     #    scores.append(p)
-    countpar = partial(counter_fasta, subs)    
+    #countpar = partial(seq_in_fasta, subs)    
         
-    pool = mp.Pool(mp.cpu_count())
-    scores = list(pool.map(countpar, list(map(lambda x: os.path.join(fastas_fold, x), fastas))))
+    #pool = mp.Pool(mp.cpu_count())
+    #scores = list(pool.map(countpar, list(map(lambda x: os.path.join(fastas_fold, x), fastas))))
+    for path in list(map(lambda x: os.path.join(fastas_fold, x), fastas)):
+        if seq_in_fasta(subseq, path) == 1:
+            return 1
+    #        break
     
-    if max(scores) > 0:
-        return 1
-    else:
-        return 0
+    return 0
+    
+    #if max(scores) > 0:
+    #    return 1
+    #else:
+    #    return 0
 
 
 def pd_snps(snps):
@@ -115,21 +123,35 @@ def filter_mutations(file_in_name, positions, refer, fastas_fold, read_thresh=50
     return df
 
 
-def proc_all(filename, vcf_dir, txt_dir, ref, fastas_fold):
-    vcf = open(os.path.join(vcf_dir, filename))
-    df = filter_mutations(os.path.join(txt_dir, filename.replace('.flt.vcf', '.txt')), pd_snps(vcf), \
+def proc_all(filename, ref, fastas_fold):
+    vcf = open(filename)
+    st = os.path.join(os.getcwd(), 'mpileups', filename.replace('.flt.vcf', '.txt').split('/')[-1])
+    print(st)
+    df = filter_mutations(st, pd_snps(vcf), \
                           ref, fastas_fold)
     return df
 
 
-t1 = time.time()
+def procpar(filenames, ref, fastas_fold):
+    t1 = time.time()
+    pool = mp.Pool(mp.cpu_count())
+    procfix = partial(proc_all, ref=ref, fastas_fold=fastas_fold)
+    print(str(time.time() - t1))
+    return pd.concat(pool.map(procfix, filenames))
 
-fnames = os.listdir('snp_results')
 
-pd.concat(map(lambda x: proc_all(x, 'snp_results', 'txt_results', 'sars-ref.fasta', 'fastas'), \
-              fnames)).to_csv(os.path.join('csv_results', ('sars_result' + \
+if __name__ =='__main__':
+    parser = argparse.ArgumentParser(description='Getting information about mutations.')
+    parser.add_argument('ref', type=str, help='Path to reference fasta file.')
+    #parser.add_argument('mpileups', type=str, nargs='+', help='Path to mpileup (.txt) files.')
+    parser.add_argument('vcfs', type=str, nargs='+', help='Path to vcf files.')
+    parser.add_argument('-o', type=str, help='Path output folder.', default='csv_results')
+    parser.add_argument('-db', type=str, help='Fasta database to search mutations.', default='fastas')
+    args = parser.parse_args()
+
+    #print(args.vcfs)
+
+    df = procpar(args.vcfs, args.ref, args.db)
+    df.to_csv(os.path.join(args.o, ('sars_result' + \
                   str(datetime.datetime.now()).replace('-', '_').replace(':', \
-                      '_').replace(' ', '_')[0:19] + '.csv')))   
-
-print(str(time.time() - t1))
-
+                      '_').replace(' ', '_')[0:19] + '.csv'))) 
