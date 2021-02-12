@@ -75,3 +75,9 @@ python aq2al.py <reads.fastq> <reference.fasta>
 
 **<reference.fasta>** - - path to SARS-CoV-2 reference fasta file. 
 
+## Example:
+
+```
+python aq2al.py covid_files/* ref/sars-ref.fasta
+```
+
