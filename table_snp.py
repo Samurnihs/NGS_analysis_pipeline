@@ -56,7 +56,7 @@ def pd_snps(snps): # getting pandas DataFrame with snps
 
 
 # filtration  of all positions with several bases
-def filter_mutations(file_in_name, positions, refer, fastas_fold, read_thresh=50, freq_thresh=1):
+def filter_mutations(file_in_name, positions, refer, fastas_fold, read_thresh=1, freq_thresh=1):
 
     columns = ['File', 'Position', 'Reads','Reference', 'Alternative', 'A', 'T', 'G', 'C', \
                'Max_base', 'GISAIDloc'] # head of dataframe
