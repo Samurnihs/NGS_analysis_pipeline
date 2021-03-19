@@ -80,8 +80,8 @@ if __name__ =='__main__':
     description='Process pair-reads NGS data from fastq to bam. Includes QC, adapters and duplicates removal.')
     parser.add_argument('ref', type=str, help='Path to reference fasta file.')
     parser.add_argument('inputs', type=str, nargs='+', help='Path to fastq files.')
-    parser.add_argument('-ot', type=str, help='Path to output folder for mpileup.', default='mpileups')
-    parser.add_argument('-os', type=str, help='Path to output folder for snps.', default='snps')
+    parser.add_argument('-ot', type=str, help='Path to output folder for mpileup.', default=os.path.join(os.getcwd(), 'mpileups'))
+    parser.add_argument('-os', type=str, help='Path to output folder for snps.', default=os.path.join(os.getcwd(), 'snps'))
     args = parser.parse_args()
 
     fqbamsnp(args.ref, args.inputs, args.ot, args.os)

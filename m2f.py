@@ -11,7 +11,10 @@ import os
 def letter(A, T, G, C):
     d = {A: 'A', T: 'T', G: 'G', C: 'C'}
     mel = max(A, T, G, C)
-    return d[mel]
+    if mel > 0:
+    	return d[mel]
+    else:
+    	return '-'
 
 
 def txt2fa(fname):
@@ -53,8 +56,8 @@ def f2fa_par(inputs, output):
 if __name__ =='__main__':
 
     parser = argparse.ArgumentParser(description='Mpileup txt file to fasta')
-    parser.add_argument('inputs', type=str, nargs='+', help='Path to bam files.')
-    parser.add_argument('-o', type=str, help='Path output folder.', default='generated_fastas')
+    parser.add_argument('inputs', type=str, nargs='+', help='Path to mpileup txt files.')
+    parser.add_argument('-o', type=str, help='Path output folder.', default=os.path.join(os.getcwd(), 'generated_fastas'))
     args = parser.parse_args()
     
     f2fa_par(args.inputs, args.o)
